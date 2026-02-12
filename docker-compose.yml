@@ -1,0 +1,28 @@
+services:
+  web:
+    build:
+      context: packages/web
+    restart: unless-stopped
+
+  server:
+    build:
+      context: packages/server
+    restart: unless-stopped
+    volumes:
+      - db-data:/app/data
+    environment:
+      - DATABASE_URL=file:/app/data/beigne.db
+
+  proxy:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - web
+      - server
+
+volumes:
+  db-data:
