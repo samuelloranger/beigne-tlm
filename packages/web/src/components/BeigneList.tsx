@@ -17,6 +17,8 @@ export function BeigneList() {
     y: number;
   } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressFired = useRef(false);
 
   const { data: beignes = [] } = useQuery({
     queryKey: queryKeys.beignes,
@@ -47,6 +49,29 @@ export function BeigneList() {
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
   }, []);
+
+  function clearLongPress() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }
+
+  function handleTouchStart(e: React.TouchEvent, beigneId: number) {
+    longPressFired.current = false;
+    const touch = e.touches[0];
+    longPressTimer.current = setTimeout(() => {
+      longPressFired.current = true;
+      setContextMenu({ beigneId, x: touch.clientX, y: touch.clientY });
+    }, 500);
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    clearLongPress();
+    if (longPressFired.current) {
+      e.preventDefault();
+    }
+  }
 
   function handleSaveCost(beigneId: number) {
     const cost = parseFloat(costInput);
@@ -81,6 +106,9 @@ export function BeigneList() {
                   y: e.clientY,
                 });
               }}
+              onTouchStart={(e) => handleTouchStart(e, beigne.id)}
+              onTouchEnd={handleTouchEnd}
+              onTouchMove={clearLongPress}
               onClick={() => {
                 if (editingBeigneId === beigne.id) {
                   setEditingBeigneId(null);
